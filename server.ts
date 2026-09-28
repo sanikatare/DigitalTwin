@@ -583,6 +583,18 @@ const app = express();
 app.use(express.json());
 
 // ===========================================================================
+// ROOT HEALTH CHECK (/api/health)
+// ===========================================================================
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "Vehicle Brain Unified Server",
+    vehicles_loaded: fleetRows.length,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ===========================================================================
 // PHASE 2 ROUTES (/api/phase2)
 // ===========================================================================
 app.get("/api/phase2/health", (_req, res) => {
@@ -1315,9 +1327,11 @@ app.get("/api/phase5/telemetry/:vehicleId", (req, res) => {
 
     const d = new Date(tsSec * 1000);
     const time = d.toTimeString().slice(0, 8);
+    const iso_timestamp = d.toISOString();
     return {
       ts: tsSec,
       time,
+      iso_timestamp,
       rpm,
       oil_pressure_psi,
       coolant_temp_c: Math.round((v.temperature + Math.sin(phase * 0.3) * 0.8) * 10) / 10,
@@ -1990,10 +2004,13 @@ app.get("/api/phase9/driver/events", (req, res) => {
       0,
       Math.round((totalTurns / 10) + seededFloat(`sc:${vid}:${i}`, -1.5, 2.4))
     );
-    const dateStr = new Date(now - i * 86400000).toISOString().slice(5, 10);
+    const sessionDateObj = new Date(now - i * 86400000 - ((i % 4) * 5400000));
+    const dateStr = sessionDateObj.toISOString().slice(5, 10);
+    const sessionTimestamp = sessionDateObj.toISOString().replace("T", " ").slice(0, 19);
     session_timeline.push({
       session: `S${String(sessionNum).padStart(2, "0")}`,
       date: dateStr,
+      timestamp: sessionTimestamp,
       harsh_braking: hb,
       acceleration: acc,
       sharp_cornering: sc,
@@ -2038,6 +2055,10 @@ app.get("/api/phase9/driver/events", (req, res) => {
     const speed_kmh = Math.round(seededFloat(`evspd:${vid}:${i}`, 28, 106));
     const severity = magnitude_g >= 0.68 ? "High" : magnitude_g >= 0.48 ? "Medium" : "Low";
 
+    const evDateObj = new Date(now - i * 4800000 - Math.round(seededFloat(`ts:${vid}:${i}`, 12000, 950000)));
+    const evTimestamp = evDateObj.toISOString().replace("T", " ").slice(0, 19);
+    const evTime = evDateObj.toTimeString().slice(0, 8);
+
     g_force_events.push({
       id: `EVT-${String(101 + i)}`,
       type,
@@ -2048,6 +2069,8 @@ app.get("/api/phase9/driver/events", (req, res) => {
       severity,
       location: locations[i % locations.length],
       session: `S${String((i % 10) + 1).padStart(2, "0")}`,
+      timestamp: evTimestamp,
+      time: evTime,
     });
   }
 
@@ -2075,11 +2098,13 @@ app.get("/api/phase9/driver/events", (req, res) => {
 // ---------------------------------------------------------------------------
 // Start Server (Vite middleware in dev, static dist in prod)
 // ---------------------------------------------------------------------------
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 async function startServer() {
   const distPath = path.join(__dirname, "dist");
-  const isProd = process.env.NODE_ENV === "production" && fs.existsSync(distPath);
+  const isProd =
+    (process.env.NODE_ENV === "production" || process.env.npm_lifecycle_event === "start") &&
+    fs.existsSync(distPath);
 
   if (isProd) {
     app.use(express.static(distPath));

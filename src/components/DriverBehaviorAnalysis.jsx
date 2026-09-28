@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Clock } from "lucide-react";
 import * as d3 from "d3";
 import { phase9 } from "../api/client";
 import { StatusPill, LoadingSkeleton, ErrorState } from "./ui";
@@ -600,26 +602,42 @@ export default function DriverBehaviorAnalysis({ vehId = 8, compact = false }) {
                   <h3 className="text-xs font-semibold text-ink">
                     Session Event Distribution (D3.js)
                   </h3>
-                  {hoveredSession ? (
-                    <div className="text-[11px] font-mono text-ink animate-scale-in">
-                      <strong>{hoveredSession.session}</strong> ({hoveredSession.date}) ·{" "}
-                      <span className="text-crit">{hoveredSession.harsh_braking}B</span> ·{" "}
-                      <span className="text-warn">{hoveredSession.acceleration}A</span> ·{" "}
-                      <span className="text-accent">{hoveredSession.sharp_cornering}C</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-3 text-[11px]">
-                      {SERIES_META.map((s) => (
-                        <span key={s.key} className="inline-flex items-center gap-1 text-ink-muted">
-                          <span
-                            className="w-2 h-2 rounded-sm inline-block"
-                            style={{ backgroundColor: s.color }}
-                          />
-                          {s.label}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <AnimatePresence mode="wait">
+                    {hoveredSession ? (
+                      <motion.div
+                        key={hoveredSession.session}
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.14 }}
+                        className="text-[11px] font-mono text-ink tabular-nums"
+                      >
+                        <strong>{hoveredSession.session}</strong> (
+                        {hoveredSession.timestamp || hoveredSession.date}) ·{" "}
+                        <span className="text-crit">{hoveredSession.harsh_braking}B</span> ·{" "}
+                        <span className="text-warn">{hoveredSession.acceleration}A</span> ·{" "}
+                        <span className="text-accent">{hoveredSession.sharp_cornering}C</span>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key="legend"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex items-center gap-3 text-[11px]"
+                      >
+                        {SERIES_META.map((s) => (
+                          <span key={s.key} className="inline-flex items-center gap-1 text-ink-muted">
+                            <span
+                              className="w-2 h-2 rounded-sm inline-block"
+                              style={{ backgroundColor: s.color }}
+                            />
+                            {s.label}
+                          </span>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <div ref={barContainerRef} className="relative w-full overflow-visible">
@@ -630,86 +648,128 @@ export default function DriverBehaviorAnalysis({ vehId = 8, compact = false }) {
                     aria-label="D3.js driver behavior session bar chart"
                   />
 
-                  {barTooltip && barTooltip.sessionData && (
-                    <div
-                      key={`${barTooltip.sessionData.session}-${barTooltip.focusedKey}`}
-                      style={{
-                        left: `${Math.min(
-                          Math.max(12, barTooltip.x + 14),
-                          Math.max(20, (barTooltip.containerW || 420) - 235)
-                        )}px`,
-                        top: `${Math.max(6, barTooltip.y - 18)}px`,
-                      }}
-                      className="pointer-events-none absolute z-30 panel bg-white/95 backdrop-blur-md border border-base-border rounded-xl p-3 shadow-xl w-[225px] animate-scale-in"
-                    >
-                      {/* Tooltip Header */}
-                      <div className="flex items-center justify-between gap-2 pb-1.5 mb-2 border-b border-base-border">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="w-2 h-2 rounded-full animate-pulse"
-                            style={{ backgroundColor: barTooltip.focusedColor }}
-                          />
-                          <span className="text-xs font-bold text-ink font-mono">
-                            Session {barTooltip.sessionData.session}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono text-ink-faint">
-                          {barTooltip.sessionData.date} · {barTooltip.sessionData.avg_speed_kmh} km/h
-                        </span>
-                      </div>
-
-                      {/* Focused Hovered Metric */}
-                      <div className="bg-base-inset/80 rounded-lg p-2 mb-2 animate-slide-right">
-                        <div className="flex items-center justify-between text-xs">
-                          <span
-                            className="font-semibold"
-                            style={{ color: barTooltip.focusedColor }}
-                          >
-                            {barTooltip.focusedLabel}
-                          </span>
-                          <span className="font-mono font-bold text-ink tabular-nums">
-                            {barTooltip.focusedValue} events
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px] font-mono text-ink-faint mt-0.5">
-                          <span>Session Share</span>
-                          <span>
-                            {barTooltip.sessionData.total > 0
-                              ? Math.round(
-                                  (barTooltip.focusedValue / barTooltip.sessionData.total) * 100
-                                )
-                              : 0}
-                            % of {barTooltip.sessionData.total} total
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Full Session Breakdown */}
-                      <div className="space-y-1 text-[11px] animate-fade-up">
-                        {SERIES_META.map((s) => {
-                          const count = barTooltip.sessionData[s.key] ?? 0;
-                          const isFocused = s.key === barTooltip.focusedKey;
-                          return (
-                            <div
-                              key={s.key}
-                              className={`flex items-center justify-between px-1.5 py-0.5 rounded ${
-                                isFocused ? "bg-brand-light/60 font-semibold text-ink" : "text-ink-muted"
-                              }`}
-                            >
-                              <span className="inline-flex items-center gap-1.5">
-                                <span
-                                  className="w-1.5 h-1.5 rounded-full"
-                                  style={{ backgroundColor: s.color }}
-                                />
-                                {s.label}
+                  <AnimatePresence>
+                    {barTooltip && barTooltip.sessionData && (
+                      <motion.div
+                        key="bar-tooltip"
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{
+                          opacity: 1,
+                          scale: 1,
+                          y: 0,
+                          left: Math.min(
+                            Math.max(12, barTooltip.x + 14),
+                            Math.max(20, (barTooltip.containerW || 420) - 245)
+                          ),
+                          top: Math.max(6, barTooltip.y - 18),
+                        }}
+                        exit={{ opacity: 0, scale: 0.92, y: 6 }}
+                        transition={{ type: "spring", stiffness: 390, damping: 28, mass: 0.6 }}
+                        className="pointer-events-none absolute z-30 panel bg-white/95 backdrop-blur-md border border-base-border rounded-xl p-3 shadow-xl w-[235px]"
+                      >
+                        {/* Tooltip Header with Timestamp */}
+                        <div className="flex items-start justify-between gap-2 pb-1.5 mb-2 border-b border-base-border">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="w-2 h-2 rounded-full animate-pulse shrink-0"
+                                style={{ backgroundColor: barTooltip.focusedColor }}
+                              />
+                              <span className="text-xs font-bold text-ink font-mono">
+                                Session {barTooltip.sessionData.session}
                               </span>
-                              <span className="font-mono tabular-nums text-ink">{count}</span>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                            <div className="flex items-center gap-1 text-[10px] font-mono text-ink-faint mt-0.5 tabular-nums">
+                              <Clock size={10} className="shrink-0 text-accent" />
+                              <span>
+                                {barTooltip.sessionData.timestamp ||
+                                  `${barTooltip.sessionData.date} 09:00:00`}{" "}
+                                UTC
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono font-semibold text-ink-muted shrink-0 tabular-nums">
+                            {barTooltip.sessionData.avg_speed_kmh} km/h
+                          </span>
+                        </div>
+
+                        {/* Focused Hovered Metric */}
+                        <motion.div
+                          key={barTooltip.focusedKey}
+                          initial={{ opacity: 0, x: -5 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.15 }}
+                          className="bg-base-inset/80 rounded-lg p-2 mb-2"
+                        >
+                          <div className="flex items-center justify-between text-xs">
+                            <span
+                              className="font-semibold"
+                              style={{ color: barTooltip.focusedColor }}
+                            >
+                              {barTooltip.focusedLabel}
+                            </span>
+                            <span className="font-mono font-bold text-ink tabular-nums">
+                              {barTooltip.focusedValue} events
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] font-mono text-ink-faint mt-0.5">
+                            <span>Session Share</span>
+                            <span className="tabular-nums">
+                              {barTooltip.sessionData.total > 0
+                                ? Math.round(
+                                    (barTooltip.focusedValue / barTooltip.sessionData.total) * 100
+                                  )
+                                : 0}
+                              % of {barTooltip.sessionData.total} total
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-base-border/70 rounded-full overflow-hidden mt-1.5">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{
+                                width: `${
+                                  barTooltip.sessionData.total > 0
+                                    ? Math.round(
+                                        (barTooltip.focusedValue / barTooltip.sessionData.total) *
+                                          100
+                                      )
+                                    : 0
+                                }%`,
+                              }}
+                              transition={{ duration: 0.2, ease: "easeOut" }}
+                              className="h-full rounded-full"
+                              style={{ backgroundColor: barTooltip.focusedColor }}
+                            />
+                          </div>
+                        </motion.div>
+
+                        {/* Full Session Breakdown */}
+                        <div className="space-y-1 text-[11px]">
+                          {SERIES_META.map((s) => {
+                            const count = barTooltip.sessionData[s.key] ?? 0;
+                            const isFocused = s.key === barTooltip.focusedKey;
+                            return (
+                              <div
+                                key={s.key}
+                                className={`flex items-center justify-between px-1.5 py-0.5 rounded transition-colors ${
+                                  isFocused ? "bg-brand-light/60 font-semibold text-ink" : "text-ink-muted"
+                                }`}
+                              >
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ backgroundColor: s.color }}
+                                  />
+                                  {s.label}
+                                </span>
+                                <span className="font-mono tabular-nums text-ink">{count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -731,83 +791,117 @@ export default function DriverBehaviorAnalysis({ vehId = 8, compact = false }) {
                     aria-label="D3.js 2D G-force friction circle chart"
                   />
 
-                  {gForceTooltip && gForceTooltip.event && (
-                    <div
-                      key={gForceTooltip.event.id}
-                      style={{
-                        left: `${Math.min(
-                          Math.max(8, gForceTooltip.x - 105),
-                          Math.max(12, (gForceTooltip.containerW || 260) - 220)
-                        )}px`,
-                        top: `${
-                          gForceTooltip.y > 135
-                            ? Math.max(4, gForceTooltip.y - 148)
-                            : gForceTooltip.y + 16
-                        }px`,
-                      }}
-                      className="pointer-events-none absolute z-30 panel bg-white/95 backdrop-blur-md border border-base-border rounded-xl p-3 shadow-xl w-[215px] animate-scale-in"
-                    >
-                      <div className="flex items-center justify-between gap-2 pb-1.5 mb-2 border-b border-base-border">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0 animate-ping"
-                            style={{
-                              backgroundColor:
-                                EVENT_COLORS[gForceTooltip.event.type] || "#2E7DE1",
-                            }}
-                          />
-                          <span className="text-xs font-bold text-ink truncate">
-                            {gForceTooltip.event.type}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono font-semibold text-brand shrink-0">
-                          {gForceTooltip.event.id}
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5 text-[11px] animate-slide-right">
-                        <div className="flex items-center justify-between">
-                          <span className="text-ink-muted">Resultant Vector</span>
-                          <span
-                            className="font-mono font-bold tabular-nums"
-                            style={{
-                              color:
-                                EVENT_COLORS[gForceTooltip.event.type] || "#2E7DE1",
-                            }}
-                          >
-                            {gForceTooltip.event.magnitude_g.toFixed(2)}g (
-                            {Math.round((gForceTooltip.event.magnitude_g / 0.75) * 100)}% limit)
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5 font-mono text-[10px] pt-0.5">
-                          <div className="bg-base-inset/80 rounded px-2 py-1">
-                            <div className="text-ink-faint">Longitudinal</div>
-                            <div className="font-semibold text-ink tabular-nums">
-                              {gForceTooltip.event.longitudinal_g > 0 ? "+" : ""}
-                              {gForceTooltip.event.longitudinal_g.toFixed(2)}g
+                  <AnimatePresence>
+                    {gForceTooltip && gForceTooltip.event && (
+                      <motion.div
+                        key={gForceTooltip.event.id}
+                        initial={{ opacity: 0, scale: 0.88, y: 8 }}
+                        animate={{
+                          opacity: 1,
+                          scale: 1,
+                          y: 0,
+                          left: Math.min(
+                            Math.max(8, gForceTooltip.x - 110),
+                            Math.max(12, (gForceTooltip.containerW || 260) - 230)
+                          ),
+                          top:
+                            gForceTooltip.y > 135
+                              ? Math.max(4, gForceTooltip.y - 165)
+                              : gForceTooltip.y + 16,
+                        }}
+                        exit={{ opacity: 0, scale: 0.9, y: 6 }}
+                        transition={{ type: "spring", stiffness: 410, damping: 28, mass: 0.55 }}
+                        className="pointer-events-none absolute z-30 panel bg-white/95 backdrop-blur-md border border-base-border rounded-xl p-3 shadow-xl w-[225px]"
+                      >
+                        <div className="flex items-start justify-between gap-2 pb-1.5 mb-2 border-b border-base-border">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0 animate-ping"
+                                style={{
+                                  backgroundColor:
+                                    EVENT_COLORS[gForceTooltip.event.type] || "#2E7DE1",
+                                }}
+                              />
+                              <span className="text-xs font-bold text-ink truncate">
+                                {gForceTooltip.event.type}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-[10px] font-mono text-ink-faint mt-0.5 tabular-nums">
+                              <Clock size={10} className="shrink-0 text-accent" />
+                              <span>
+                                {gForceTooltip.event.timestamp ||
+                                  `${gForceTooltip.event.session} · ${gForceTooltip.event.time || "14:22:08"}`}
+                              </span>
                             </div>
                           </div>
-                          <div className="bg-base-inset/80 rounded px-2 py-1">
-                            <div className="text-ink-faint">Lateral</div>
-                            <div className="font-semibold text-ink tabular-nums">
-                              {gForceTooltip.event.lateral_g > 0 ? "+" : ""}
-                              {gForceTooltip.event.lateral_g.toFixed(2)}g
-                            </div>
-                          </div>
+                          <span className="text-[10px] font-mono font-semibold text-brand shrink-0">
+                            {gForceTooltip.event.id}
+                          </span>
                         </div>
 
-                        <div className="pt-1.5 border-t border-base-border/80 flex items-center justify-between text-[10px] font-mono text-ink-muted animate-fade-up">
-                          <span className="truncate max-w-[130px]">
-                            {gForceTooltip.event.location}
-                          </span>
-                          <span className="font-semibold text-ink shrink-0">
-                            {gForceTooltip.event.speed_kmh} km/h
-                          </span>
+                        <div className="space-y-1.5 text-[11px]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-ink-muted">Resultant Vector</span>
+                            <span
+                              className="font-mono font-bold tabular-nums"
+                              style={{
+                                color:
+                                  EVENT_COLORS[gForceTooltip.event.type] || "#2E7DE1",
+                              }}
+                            >
+                              {gForceTooltip.event.magnitude_g.toFixed(2)}g (
+                              {Math.round((gForceTooltip.event.magnitude_g / 0.75) * 100)}% limit)
+                            </span>
+                          </div>
+
+                          <div className="w-full h-1 bg-base-border/70 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{
+                                width: `${Math.min(
+                                  100,
+                                  Math.round((gForceTooltip.event.magnitude_g / 0.75) * 100)
+                                )}%`,
+                              }}
+                              transition={{ duration: 0.2, ease: "easeOut" }}
+                              className="h-full rounded-full"
+                              style={{
+                                backgroundColor:
+                                  EVENT_COLORS[gForceTooltip.event.type] || "#2E7DE1",
+                              }}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 font-mono text-[10px] pt-0.5">
+                            <div className="bg-base-inset/80 rounded px-2 py-1">
+                              <div className="text-ink-faint">Longitudinal</div>
+                              <div className="font-semibold text-ink tabular-nums">
+                                {gForceTooltip.event.longitudinal_g > 0 ? "+" : ""}
+                                {gForceTooltip.event.longitudinal_g.toFixed(2)}g
+                              </div>
+                            </div>
+                            <div className="bg-base-inset/80 rounded px-2 py-1">
+                              <div className="text-ink-faint">Lateral</div>
+                              <div className="font-semibold text-ink tabular-nums">
+                                {gForceTooltip.event.lateral_g > 0 ? "+" : ""}
+                                {gForceTooltip.event.lateral_g.toFixed(2)}g
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-1.5 border-t border-base-border/80 flex items-center justify-between text-[10px] font-mono text-ink-muted">
+                            <span className="truncate max-w-[135px]">
+                              {gForceTooltip.event.location}
+                            </span>
+                            <span className="font-semibold text-ink shrink-0 tabular-nums">
+                              {gForceTooltip.event.speed_kmh} km/h
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {selectedEvent && (
@@ -822,8 +916,9 @@ export default function DriverBehaviorAnalysis({ vehId = 8, compact = false }) {
                           {selectedEvent.type} · {selectedEvent.id}
                         </span>
                       </div>
-                      <div className="text-ink-faint truncate mt-0.5">
-                        {selectedEvent.location} · {selectedEvent.speed_kmh} km/h
+                      <div className="text-ink-faint truncate mt-0.5 font-mono text-[10px]">
+                        {selectedEvent.timestamp || selectedEvent.session} · {selectedEvent.location} ·{" "}
+                        {selectedEvent.speed_kmh} km/h
                       </div>
                     </div>
                     <div className="text-right font-mono shrink-0 tabular-nums">
@@ -868,8 +963,8 @@ export default function DriverBehaviorAnalysis({ vehId = 8, compact = false }) {
                         </span>
                       </div>
                       <div className="text-xs font-semibold text-ink truncate">{ev.type}</div>
-                      <div className="text-[10px] text-ink-faint truncate mt-0.5">
-                        {ev.location} · {ev.speed_kmh} km/h
+                      <div className="text-[10px] text-ink-faint truncate mt-0.5 font-mono tabular-nums">
+                        {ev.time || ev.timestamp?.slice(11, 19) || ""} · {ev.location} · {ev.speed_kmh} km/h
                       </div>
                     </button>
                   ))}
