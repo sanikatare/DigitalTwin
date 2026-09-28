@@ -1,0 +1,8 @@
+{
+  "name": "Vehicle Brain — Unified Dashboard",
+  "description": "Unified vehicle intelligence and health digital twin platform combining health scoring, predictive maintenance, component simulation, OBD-II diagnostics, RAG knowledge base, conversational assistant, trip readiness planning, and driver behaviour analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

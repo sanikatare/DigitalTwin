@@ -1,0 +1,22 @@
+# Ignore all virtual environments
+venv/
+**/venv/
+
+# Python cache
+__pycache__/
+**/__pycache__/
+
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# Environment variables
+.env
+
+# Pytest
+.pytest_cache/
+
+logs/
+*.log
