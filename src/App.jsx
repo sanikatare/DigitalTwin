@@ -230,6 +230,10 @@ function KineticShowcaseOverlay({ onClose }) {
               style={{ animation: "scanSweep 2.2s ease-in-out infinite" }}
             />
           </div>
+
+          <p className="mt-6 text-xs sm:text-sm tracking-[0.2em] uppercase text-sky-200/80 animate-pulse">
+            Click anywhere to enter dashboard
+          </p>
         </div>
       </div>
     </div>
@@ -237,7 +241,7 @@ function KineticShowcaseOverlay({ onClose }) {
 }
 
 export default function App() {
-  const [showShowcase, setShowShowcase] = useState(false);
+  const [showShowcase, setShowShowcase] = useState(true);
 
   return (
     <VehicleProvider>
@@ -253,10 +257,10 @@ export default function App() {
 
           <Sidebar />
           <div className="relative z-10 flex-1 flex flex-col min-w-0">
-            <TopBar onOpenShowcase={() => setShowShowcase(true)} />
+            <TopBar />
             <main className="flex-1 overflow-y-auto p-4 md:p-6 min-h-0">
               <Routes>
-                <Route path="/" element={<Overview onOpenShowcase={() => setShowShowcase(true)} />} />
+                <Route path="/" element={<Overview />} />
                 <Route path="/health" element={<HealthScore />} />
                 <Route path="/maintenance" element={<PredictiveMaintenance />} />
                 <Route path="/twin" element={<DigitalTwin />} />

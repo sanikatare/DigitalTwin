@@ -12,7 +12,6 @@ import {
   ArrowRight,
   AlertTriangle,
   Clock,
-  Layers,
 } from "lucide-react";
 import { phase2, phase3 } from "../api/client";
 import {
@@ -68,7 +67,7 @@ function MetricCard({ title, loading, error, delay = 0, children }) {
   );
 }
 
-export default function Overview({ onOpenShowcase }) {
+export default function Overview() {
   const { vehicleId, setVehicleId } = useVehicle();
   const [health, setHealth] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -260,17 +259,6 @@ export default function Overview({ onOpenShowcase }) {
                   <div className="text-base font-bold tabular-nums">{health.trip_readiness_label}</div>
                 </div>
               </div>
-            )}
-
-            {onOpenShowcase && (
-              <button
-                type="button"
-                onClick={onOpenShowcase}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-brand text-xs font-semibold hover:bg-sky-50 transition-all shadow-md hover:-translate-y-0.5 whitespace-nowrap"
-              >
-                <Layers size={14} />
-                <span>Launch 3D Orbit</span>
-              </button>
             )}
           </div>
         </div>

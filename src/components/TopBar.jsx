@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Car, ChevronLeft, ChevronRight, Layers } from "lucide-react";
+import { Car, ChevronLeft, ChevronRight } from "lucide-react";
 import { ALL_SERVICES } from "../api/client";
 import { useVehicle } from "../context/VehicleContext";
 
@@ -57,7 +57,7 @@ function ServiceStatus() {
   );
 }
 
-export default function TopBar({ onOpenShowcase }) {
+export default function TopBar() {
   const { vehicleId, setVehicleId } = useVehicle();
 
   function stepVehicle(delta) {
@@ -127,19 +127,9 @@ export default function TopBar({ onOpenShowcase }) {
         </div>
       </div>
 
-      {/* Zone 3: Service Status + 3D Kinetic View Trigger */}
+      {/* Zone 3: Service Status */}
       <div className="flex items-center gap-4">
         <ServiceStatus />
-        {onOpenShowcase && (
-          <button
-            type="button"
-            onClick={onOpenShowcase}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand text-white text-xs font-medium hover:bg-brand-dark transition-all duration-150 whitespace-nowrap shadow-sm hover:-translate-y-0.5"
-          >
-            <Layers size={13} />
-            <span>3D View</span>
-          </button>
-        )}
       </div>
     </header>
   );
